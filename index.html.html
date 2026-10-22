@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>StudySprint — Student Productivity Hub</title>
+<style>
+:root{--bg:#f5f7fb;--card:#fff;--ink:#182230;--muted:#64748b;--accent:#4f46e5;--accent2:#eef2ff;--line:#e5eaf2;--good:#16805d;--danger:#c24141}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{background:linear-gradient(120deg,#312e81,#4f46e5);color:#fff;padding:28px 18px 36px}
+.wrap{max-width:1050px;margin:auto;padding:0 16px}.top{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.brand{font-weight:800;font-size:1.35rem;letter-spacing:.2px}.tag{opacity:.85;font-size:.92rem}.date{font-size:.9rem;opacity:.9}
+main{margin-top:-18px;padding-bottom:40px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 5px 18px #18223008}
+.stat-label{color:var(--muted);font-size:.86rem}.stat-value{font-size:1.65rem;font-weight:800;margin-top:4px}
+.layout{display:grid;grid-template-columns:1.25fr .75fr;gap:16px}.section-title{font-size:1.08rem;margin:0 0 12px}.sub{color:var(--muted);font-size:.9rem}
+form{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}input,select,button{font:inherit;border-radius:10px;padding:11px 12px;border:1px solid var(--line)}
+input,select{background:#fff;color:var(--ink);min-width:0}#taskTitle{flex:1;min-width:160px}button{cursor:pointer;background:var(--accent);border-color:var(--accent);color:#fff;font-weight:650}button:hover{filter:brightness(.96)}button.secondary{background:#fff;color:var(--ink);border-color:var(--line)}button.small{padding:7px 10px;font-size:.86rem}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}.filters button.active{background:var(--accent2);color:var(--accent);border-color:#c7d2fe}
+.task-list{display:grid;gap:9px}.task{display:flex;align-items:flex-start;gap:10px;border:1px solid var(--line);padding:12px;border-radius:12px;background:#fff}.task input[type=checkbox]{margin-top:5px;accent-color:var(--accent);width:17px;height:17px}.task-main{flex:1;min-width:0}.task-name{font-weight:650;overflow-wrap:anywhere}.task-meta{font-size:.82rem;color:var(--muted);margin-top:3px}.task.done .task-name{text-decoration:line-through;color:var(--muted)}.empty{padding:24px 8px;text-align:center;color:var(--muted)}
+.timer{text-align:center;padding:8px 0 2px}.timer-label{color:var(--muted);font-size:.9rem}.clock{font-size:3.1rem;font-weight:850;letter-spacing:1px;margin:6px 0}.timer-actions{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}.progress{height:7px;background:#eef2ff;border-radius:20px;overflow:hidden;margin:16px 0}.progress span{display:block;height:100%;background:var(--accent);width:0;transition:width .2s}
+.tip{background:#f8fafc;border:1px dashed #cbd5e1;border-radius:12px;padding:12px;color:#475569;font-size:.9rem;margin-top:14px}
+footer{text-align:center;color:var(--muted);font-size:.82rem;padding:0 16px 26px}
+@media(max-width:760px){.layout{grid-template-columns:1fr}.stats{gap:8px}.card{padding:14px}.stat-value{font-size:1.35rem}.clock{font-size:2.7rem}}
+@media(max-width:420px){.stats{grid-template-columns:1fr}.top{align-items:flex-start}form>*{width:100%}}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap top">
+    <div><div class="brand">✦ StudySprint</div><div class="tag">Small steps. Strong study habits.</div></div>
+    <div class="date" id="today"></div>
+  </div>
+</header>
+<main class="wrap">
+  <section class="stats" aria-label="Study summary">
+    <div class="card"><div class="stat-label">Tasks completed</div><div class="stat-value" id="doneCount">0</div></div>
+    <div class="card"><div class="stat-label">Tasks remaining</div><div class="stat-value" id="leftCount">0</div></div>
+    <div class="card"><div class="stat-label">Focus sessions today</div><div class="stat-value" id="sessionCount">0</div></div>
+  </section>
+  <div class="layout">
+    <section class="card">
+      <h2 class="section-title">My study tasks</h2>
+      <p class="sub">Add a task, choose a subject, and tick it off when finished.</p>
+      <form id="taskForm">
+        <input id="taskTitle" maxlength="100" placeholder="e.g. Revise fractions" aria-label="Task name" required>
+        <select id="subject" aria-label="Subject">
+          <option>General</option><option>Maths</option><option>Science</option><option>English</option><option>Social Studies</option><option>Computer</option>
+        </select>
+        <select id="priority" aria-label="Priority"><option value="Normal">Normal</option><option value="High">High priority</option></select>
+        <button type="submit">Add task</button>
+      </form>
+      <div class="filters" aria-label="Task filters">
+        <button class="small secondary active" data-filter="all">All</button>
+        <button class="small secondary" data-filter="open">To do</button>
+        <button class="small secondary" data-filter="done">Completed</button>
+        <button class="small secondary" id="clearDone">Clear completed</button>
+      </div>
+      <div id="taskList" class="task-list"></div>
+    </section>
+    <aside class="card">
+      <h2 class="section-title">Focus timer</h2>
+      <p class="sub">Try one 25-minute focus session, then take a short break.</p>
+      <div class="timer">
+        <div class="timer-label" id="timerLabel">Focus time</div>
+        <div class="clock" id="clock" role="timer" aria-live="off">25:00</div>
+        <div class="timer-actions">
+          <button id="startPause">Start focus</button>
+          <button class="secondary" id="resetTimer">Reset</button>
+        </div>
+        <div class="progress"><span id="progressBar"></span></div>
+        <div class="timer-actions">
+          <button class="small secondary" data-minutes="25">25 min focus</button>
+          <button class="small secondary" data-minutes="5">5 min break</button>
+        </div>
+      </div>
+      <div class="tip"><strong>Study tip:</strong> Put your phone away, choose one small task, and take a break after focusing. Your tasks are saved in this browser on this device.</div>
+    </aside>
+  </div>
+</main>
+<footer>StudySprint demo · Your tasks stay in this browser using local storage. This demo does not sync between devices.</footer>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const STORAGE_KEY = "studysprint.tasks.v1";
+  const SESSION_KEY = "studysprint.sessions." + new Date().toDateString();
+  let tasks = [];
+  try { tasks = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); if (!Array.isArray(tasks)) tasks = []; } catch { tasks = []; }
+  let filter = "all";
+  let duration = 25 * 60, remaining = duration, running = false, interval = null;
+  let sessions = Number(localStorage.getItem(SESSION_KEY) || 0);
+
+  $("today").textContent = new Date().toLocaleDateString(undefined, {weekday:"long", month:"short", day:"numeric"});
+  const save = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  const escapeHTML = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+  function render() {
+    $("doneCount").textContent = tasks.filter(t => t.done).length;
+    $("leftCount").textContent = tasks.filter(t => !t.done).length;
+    $("sessionCount").textContent = sessions;
+    const visible = tasks.filter(t => filter === "all" || (filter === "open" && !t.done) || (filter === "done" && t.done));
+    const list = $("taskList");
+    if (!visible.length) {
+      list.innerHTML = `<div class="empty">${tasks.length ? "No tasks in this filter." : "No tasks yet. Add your first study task above."}</div>`;
+      return;
+    }
+    list.innerHTML = visible.map(t => `
+      <div class="task ${t.done ? "done" : ""}">
+        <input type="checkbox" data-toggle="${t.id}" ${t.done ? "checked" : ""} aria-label="Mark ${escapeHTML(t.title)} completed">
+        <div class="task-main"><div class="task-name">${escapeHTML(t.title)}</div>
+        <div class="task-meta">${escapeHTML(t.subject)} · ${escapeHTML(t.priority)} priority</div></div>
+        <button class="small secondary" data-delete="${t.id}" aria-label="Delete task">Delete</button>
+      </div>`).join("");
+  }
+  $("taskForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const title = $("taskTitle").value.trim();
+    if (!title) return;
+    tasks.unshift({id: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random())), title, subject: $("subject").value, priority: $("priority").value, done:false});
+    save(); $("taskTitle").value = ""; filter = "all";
+    document.querySelectorAll("[data-filter]").forEach(b => b.classList.toggle("active", b.dataset.filter === filter));
+    render(); $("taskTitle").focus();
+  });
+  $("taskList").addEventListener("change", e => {
+    const id = e.target.dataset.toggle;
+    if (!id) return;
+    const task = tasks.find(t => t.id === id); if (task) task.done = e.target.checked;
+    save(); render();
+  });
+  $("taskList").addEventListener("click", e => {
+    const id = e.target.dataset.delete;
+    if (!id) return;
+    tasks = tasks.filter(t => t.id !== id); save(); render();
+  });
+  document.querySelectorAll("[data-filter]").forEach(b => b.addEventListener("click", () => {
+    filter = b.dataset.filter;
+    document.querySelectorAll("[data-filter]").forEach(x => x.classList.toggle("active", x === b));
+    render();
+  }));
+  $("clearDone").addEventListener("click", () => { tasks = tasks.filter(t => !t.done); save(); render(); });
+
+  function drawTimer() {
+    const mins = Math.floor(remaining / 60), secs = remaining % 60;
+    $("clock").textContent = `${String(mins).padStart(2,"0")}:${String(secs).padStart(2,"0")}`;
+    $("progressBar").style.width = `${((duration - remaining) / duration) * 100}%`;
+    $("startPause").textContent = running ? "Pause" : (remaining === duration ? "Start focus" : "Resume");
+  }
+  function stopTimer() { running = false; if (interval) clearInterval(interval); interval = null; drawTimer(); }
+  function startTimer() {
+    if (running) { stopTimer(); return; }
+    running = true; drawTimer();
+    interval = setInterval(() => {
+      remaining--;
+      if (remaining <= 0) {
+        stopTimer();
+        if (duration === 25 * 60) {
+          sessions++; localStorage.setItem(SESSION_KEY, String(sessions)); render();
+          alert("Focus session complete! Take a short break.");
+        } else alert("Break complete. Ready for another focus session?");
+        remaining = duration; drawTimer();
+      } else drawTimer();
+    }, 1000);
+  }
+  $("startPause").addEventListener("click", startTimer);
+  $("resetTimer").addEventListener("click", () => { stopTimer(); remaining = duration; drawTimer(); });
+  document.querySelectorAll("[data-minutes]").forEach(b => b.addEventListener("click", () => {
+    stopTimer(); duration = Number(b.dataset.minutes) * 60; remaining = duration;
+    $("timerLabel").textContent = duration === 300 ? "Break time" : "Focus time"; drawTimer();
+  }));
+  render(); drawTimer();
+})();
+</script>
+</body>
+</html>
